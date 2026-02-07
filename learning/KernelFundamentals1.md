@@ -1,186 +1,214 @@
-Day 1 – Kernel Fundamentals
-Goal of the Day
+# Day 1 – Kernel Fundamentals
+
+## Goal of the Day
 
 Understand what the Linux kernel is, how it differs from user space, how the kernel is structured, and prove it hands-on using real commands.
 
-1. Theory (Concepts to Understand)
-   Kernel vs User Space
+---
 
-Kernel Space
+## 1. Theory (Concepts to Understand)
 
-Runs in ring 0 (highest privilege)
+### Kernel vs User Space
 
-Manages:
+#### Kernel Space
 
-Process scheduling
+- Runs in **Ring 0** (highest privilege).
+- Manages:
+  - Process scheduling
+  - Memory
+  - Hardware drivers
+  - System calls
 
-Memory
+#### User Space
 
-Hardware drivers
+- Runs in **Ring 3** (lowest privilege).
+- Applications like: `bash`, `gcc`, `vim`, `chrome`.
+- **Cannot** access hardware directly.
 
-System calls
+> **Key Idea:** User programs request services → kernel executes safely.
 
-User Space
-
-Runs in ring 3
-
-Applications like:
-
-bash, gcc, vim, chrome
-
-Cannot access hardware directly
-
-👉 Key idea:
-User programs request services → kernel executes safely.
-
-Linux Kernel Architecture
+### Linux Kernel Architecture
 
 Understand this mental model:
 
+```
 User Space
 ├─ Applications (bash, gcc)
 └─ Libraries (glibc)
-↓ system calls
+      ↓ system calls
 Kernel Space
 ├─ Scheduler
 ├─ Memory Manager
 ├─ VFS
 ├─ Networking Stack
 └─ Device Drivers
-↓
+      ↓
 Hardware
+```
 
-Important architecture components:
+#### Important Architecture Components
 
-Monolithic kernel (Linux)
+- **Monolithic Kernel (Linux)**: The entire OS runs in a single address space.
+- **Loadable Kernel Modules (LKM)**: Drivers can be loaded/unloaded at runtime.
+- **System Call Interface**: The bridge between user space and kernel space.
 
-Loadable Kernel Modules (LKM)
+---
 
-System call interface
+## 2. Reading (Mandatory)
 
-2. Reading (Mandatory)
+📂 **From kernel source:**
 
-📂 From kernel source:
+- `linux/Documentation/`
+- `linux/Documentation/core-api/`
+- `linux/Documentation/process/`
 
-linux/Documentation/
-linux/Documentation/core-api/
-linux/Documentation/process/
+📂 **For drivers:**
 
-📂 For drivers:
+- `linux/drivers/`
+- `linux/drivers/char/`
+- `linux/drivers/block/`
 
-linux/drivers/
-linux/drivers/char/
-linux/drivers/block/
+> **Note:** Don’t read everything — scan structure, filenames, comments.
 
-Don’t read everything — scan structure, filenames, comments.
+---
 
-3. Hands-On (This Is the Core)
-   A. Verify Kernel vs User Space
-   uname -a # Kernel info
-   ps aux | head # User-space processes
-   ls /proc # Kernel interface
+## 3. Hands-On (This Is the Core)
+
+### A. Verify Kernel vs User Space
+
+```bash
+uname -a        # Kernel info
+ps aux | head   # User-space processes
+ls /proc        # Kernel interface
+```
 
 Check CPU rings indirectly:
 
+```bash
 cat /proc/cpuinfo
+```
 
-B. Kernel Messages (Kernel talking to you)
+### B. Kernel Messages (Kernel talking to you)
+
+View the kernel ring buffer:
+
+```bash
 dmesg | less
+```
 
 Filter messages:
 
+```bash
 dmesg | grep usb
 dmesg | grep kernel
+```
 
-👉 Key learning:
-Kernel logs ≠ normal logs. They live in kernel memory.
+> **Key Learning:** Kernel logs ≠ normal logs. They live in kernel memory.
 
-C. Your First Kernel Module (Hello Kernel)
+### C. Your First Kernel Module (Hello Kernel)
 
-Create a file:
+1.  Create a file `hello.c`:
 
-nano hello.c
+    ```c
+    #include <linux/module.h>
+    #include <linux/kernel.h>
 
-#include <linux/module.h>
-#include <linux/kernel.h>
+    static int __init hello_init(void)
+    {
+        printk(KERN_INFO "Hello from the Linux Kernel!\n");
+        return 0;
+    }
 
-static int \_\_init hello_init(void)
-{
-printk(KERN_INFO "Hello from the Linux Kernel!\n");
-return 0;
-}
+    static void __exit hello_exit(void)
+    {
+        printk(KERN_INFO "Goodbye from the Linux Kernel!\n");
+    }
 
-static void \_\_exit hello_exit(void)
-{
-printk(KERN_INFO "Goodbye from the Linux Kernel!\n");
-}
+    module_init(hello_init);
+    module_exit(hello_exit);
 
-module_init(hello_init);
-module_exit(hello_exit);
+    MODULE_LICENSE("GPL");
+    MODULE_AUTHOR("Kalpit");
+    MODULE_DESCRIPTION("Day 1 Hello Kernel Module");
+    ```
 
-MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Kalpit");
-MODULE_DESCRIPTION("Day 1 Hello Kernel Module");
+2.  Create a `Makefile`:
 
-Create Makefile:
+    ```makefile
+    obj-m += hello.o
 
-obj-m += hello.o
+    all:
+    	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules
 
-all:
-make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules
+    clean:
+    	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) clean
+    ```
 
-clean:
-make -C /lib/modules/$(shell uname -r)/build M=$(PWD) clean
+3.  Build the module:
 
-Build:
+    ```bash
+    make
+    ```
 
-make
+4.  Load the module:
 
-Load module:
+    ```bash
+    sudo insmod hello.ko
+    ```
 
-sudo insmod hello.ko
+5.  Check kernel log:
 
-Check kernel log:
+    ```bash
+    dmesg | tail
+    ```
 
-dmesg | tail
+6.  Unload the module:
+    ```bash
+    sudo rmmod hello
+    dmesg | tail
+    ```
 
-Unload:
+> 🔥 **This is the exact moment you cross into kernel space.**
 
-sudo rmmod hello
-dmesg | tail
+---
 
-🔥 This is the exact moment you cross into kernel space.
+## 4. Git Basics (Kernel Dev Essential)
 
-4. Git Basics (Kernel Dev Essential)
-   git status
-   git log --oneline --max-count=5
+Check status and logs:
+
+```bash
+git status
+git log --oneline --max-count=5
+```
 
 Inside kernel tree:
 
+```bash
 git describe
 git branch
+```
 
-Understand:
+**Understand:**
 
-Kernel dev = patches
+- Kernel dev = patches
+- Git is **not** optional
 
-Git is not optional
+---
 
-5. Day-1 Checklist (You’re Done If You Can Do This)
+## 5. Day-1 Checklist (You’re Done If You Can Do This)
 
-✅ Explain kernel vs user space in your own words
-✅ Locate Documentation/ and drivers/
-✅ Use dmesg confidently
-✅ Load & unload a kernel module
-✅ See your own printk() output
-✅ Understand why sudo is required
+- [ ] Explain kernel vs user space in your own words
+- [ ] Locate `Documentation/` and `drivers/`
+- [ ] Use `dmesg` confidently
+- [ ] Load & unload a kernel module
+- [ ] See your own `printk()` output
+- [ ] Understand why `sudo` is required
 
-What Comes on Day 2 (Teaser 👀)
+---
 
-Kernel build process
+## What Comes on Day 2 (Teaser 👀)
 
-vmlinux, bzImage
-
-init, initramfs
-
-Boot flow (BIOS → kernel → user space)
+- Kernel build process
+- `vmlinux`, `bzImage`
+- `init`, `initramfs`
+- Boot flow (BIOS → kernel → user space)

@@ -45,10 +45,10 @@ My specialized kernel development lab on Debian.
 
 4.  **Exit QEMU**:
 
-```bash
+    ```bash
     Ctrl + a = “QEMU command mode”
     x = “exit”
-```
+    ```
 
 ## Learning Roadmap Status
 
