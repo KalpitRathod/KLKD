@@ -89,6 +89,16 @@ cat <<EOF > rootfs/init
 # Mount minimal filesystems
 mount -t proc none /proc
 mount -t sysfs none /sys
+mount -t devtmpfs none /dev
+
+echo "Debug: /dev contents:"
+ls -l /dev
+
+# Manual fallback
+if [ ! -e /dev/ttyS0 ]; then
+    echo "Creating /dev/ttyS0 manually..."
+    mknod /dev/ttyS0 c 4 64
+fi
 
 # Welcome message
 echo "-----------------------------------"
