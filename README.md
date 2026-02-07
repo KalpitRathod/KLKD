@@ -38,9 +38,17 @@ My specialized kernel development lab on Debian.
     find . -print0 | cpio --null -ov --format=newc | gzip -9 > ../initramfs.cpio.gz
     ```
 3.  **Run QEMU**:
+
     ```bash
     ./run_qemu.sh
     ```
+
+4.  **Exit QEMU**:
+
+```bash
+    Ctrl + a = “QEMU command mode”
+    x = “exit”
+```
 
 ## Learning Roadmap Status
 
